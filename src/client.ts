@@ -7,13 +7,16 @@ import {
   TableSchema,
   AIQueryResult,
   ColumnDef,
+  Project,
+  APIKey,
+  UserProfile,
 } from './types'
 
 /**
  * AetherDB JavaScript Client
  *
  * @example
- * const db = new AetherDB({ url: 'https://aetherdb.cloud', token: 'your-jwt-token' })
+ * const db = new AetherDB({ url: 'https://app.aetherdb.cloud', token: 'your-jwt-token' })
  * const { rows } = await db.from('products').select('*').execute()
  * const result = await db.ai('how many products cost more than $20?')
  */
@@ -40,8 +43,8 @@ export class AetherDB {
   }
 
   /**
-   * Sign in and get an access token.
-   * The token is automatically used for all subsequent requests.
+   * Sign in and get an access + refresh token.
+   * The access token is automatically used for all subsequent requests.
    */
   async signIn(email: string, password: string): Promise<AuthResponse> {
     const res = await this.http.post<AuthResponse>('/auth/login', { email, password })
@@ -50,16 +53,16 @@ export class AetherDB {
   }
 
   /**
-   * Set a JWT token directly (if you already have one).
+   * Set a JWT token directly (e.g. after loading from storage).
    */
   setToken(token: string): void {
     this.http.setToken(token)
   }
 
   /**
-   * Get the current user's profile and schema info.
+   * Get the current authenticated user's profile.
    */
-  async getUser(): Promise<{ id: number; email: string; role: string; schema: string }> {
+  async getUser(): Promise<UserProfile> {
     return this.http.get('/db/me')
   }
 
@@ -70,6 +73,8 @@ export class AetherDB {
    *
    * @example
    * const { rows } = await db.from('products').select('title, price').eq('price', 29.99).execute()
+   * await db.from('products').eq('id', 5).update({ price: 24.99 })
+   * await db.from('products').eq('id', 5).delete()
    */
   from(table: string): QueryBuilder {
     return new QueryBuilder(this.http, table, true)
@@ -83,7 +88,7 @@ export class AetherDB {
   }
 
   /**
-   * Get the schema of your isolated database — all tables and columns.
+   * Get the live schema of your isolated database — all tables and columns.
    */
   async getSchema(): Promise<{ schema: string; tables: TableSchema[]; table_count: number }> {
     return this.http.get('/tenant/schema')
@@ -106,7 +111,7 @@ export class AetherDB {
 
   /**
    * Ask a natural language question about your data.
-   * AetherDB generates and executes the SQL automatically.
+   * AetherDB generates and runs the SQL automatically.
    *
    * @example
    * const result = await db.ai('how many products cost more than $20?')
@@ -120,10 +125,13 @@ export class AetherDB {
   // ── Raw SQL ───────────────────────────────────────────────────────────────
 
   /**
-   * Run a raw SELECT query in your isolated schema.
+   * Run a raw parameterized SELECT in your isolated schema.
+   *
+   * @example
+   * const { rows } = await db.query('SELECT * FROM products WHERE price > $1', [20])
    */
-  async query<T = Record<string, unknown>>(sql: string): Promise<{ rows: T[]; count: number }> {
-    return this.http.post('/tenant/query', { sql })
+  async query<T = Record<string, unknown>>(sql: string, args?: unknown[]): Promise<{ rows: T[]; count: number }> {
+    return this.http.post('/tenant/query', { sql, args })
   }
 
   // ── Projects + API keys ───────────────────────────────────────────────────
@@ -131,15 +139,22 @@ export class AetherDB {
   /**
    * List all your projects.
    */
-  async listProjects(): Promise<{ projects: unknown[]; count: number }> {
+  async listProjects(): Promise<{ projects: Project[]; count: number }> {
     return this.http.get('/db/projects')
   }
 
   /**
    * Create a new project.
    */
-  async createProject(name: string, description?: string): Promise<unknown> {
+  async createProject(name: string, description?: string): Promise<Project> {
     return this.http.post('/db/projects', { name, description })
+  }
+
+  /**
+   * List API keys for a project.
+   */
+  async listAPIKeys(projectId: number): Promise<{ keys: APIKey[]; count: number }> {
+    return this.http.get(`/db/projects/${projectId}/keys`)
   }
 
   /**
@@ -150,10 +165,17 @@ export class AetherDB {
     return this.http.post(`/db/projects/${projectId}/keys`, { name })
   }
 
+  /**
+   * Revoke an API key.
+   */
+  async revokeAPIKey(projectId: number, keyId: number): Promise<{ status: string }> {
+    return this.http.delete(`/db/projects/${projectId}/keys/${keyId}`)
+  }
+
   // ── Health ────────────────────────────────────────────────────────────────
 
   /**
-   * Check if AetherDB is running.
+   * Check if AetherDB is reachable and the database is healthy.
    */
   async health(): Promise<{ status: string; service: string }> {
     return this.http.get('/health')
