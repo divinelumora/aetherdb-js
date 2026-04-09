@@ -58,6 +58,17 @@ export class HttpClient {
     return data as unknown as T
   }
 
+  async patch<T>(path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${this.baseURL}${path}`, {
+      method: 'PATCH',
+      headers: this.headers(),
+      body: body ? JSON.stringify(body) : undefined,
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error((data['error'] as string) || `HTTP ${res.status}`)
+    return data as unknown as T
+  }
+
   /** Upload a file using multipart/form-data. */
   async upload<T>(path: string, formData: FormData): Promise<T> {
     const headers: Record<string, string> = {}

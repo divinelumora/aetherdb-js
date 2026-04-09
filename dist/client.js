@@ -325,6 +325,88 @@ class AetherDB {
     async getAuditLogs(limit = 100, offset = 0) {
         return this.http.get(`/db/audit?limit=${limit}&offset=${offset}`);
     }
+    // ── Billing ───────────────────────────────────────────────────────────────
+    /**
+     * List all available plans (free, pro, team) with their limits and pricing.
+     */
+    async listPlans() {
+        return this.http.get('/billing/plans');
+    }
+    /**
+     * Get your current subscription details (plan, status, period dates, limits).
+     * A free subscription is auto-created on first call.
+     */
+    async getSubscription() {
+        return this.http.get('/billing/subscription');
+    }
+    /**
+     * Get live usage stats for the current billing period (queries, AI calls, storage).
+     */
+    async getUsageStats() {
+        return this.http.get('/billing/usage');
+    }
+    /**
+     * Start a Stripe Checkout session to upgrade to pro or team.
+     * Returns a redirect URL — navigate the user there to complete payment.
+     *
+     * @example
+     * const { url } = await db.createCheckoutSession('pro')
+     * window.location.href = url
+     */
+    async createCheckoutSession(plan) {
+        return this.http.post('/billing/checkout', { plan });
+    }
+    /**
+     * Open the Stripe Customer Portal so the user can manage or cancel their subscription.
+     * Returns a redirect URL.
+     */
+    async createPortalSession() {
+        return this.http.post('/billing/portal');
+    }
+    // ── Admin ─────────────────────────────────────────────────────────────────
+    // All admin methods require an account with role="admin".
+    /**
+     * Get platform-wide aggregate stats (total users, queries today, subscribers).
+     * Requires admin role.
+     */
+    async adminGetStats() {
+        return this.http.get('/admin/stats');
+    }
+    /**
+     * List all users with enriched subscription and usage data.
+     * Requires admin role.
+     */
+    async adminListUsers(limit = 50, offset = 0) {
+        return this.http.get(`/admin/users?limit=${limit}&offset=${offset}`);
+    }
+    /**
+     * Suspend a user account. Suspended users cannot authenticate.
+     * Requires admin role.
+     */
+    async adminSuspendUser(userID) {
+        return this.http.post(`/admin/users/${userID}/suspend`);
+    }
+    /**
+     * Lift a user suspension.
+     * Requires admin role.
+     */
+    async adminUnsuspendUser(userID) {
+        return this.http.post(`/admin/users/${userID}/unsuspend`);
+    }
+    /**
+     * Override a user plan without going through Stripe (e.g., grant free trial of pro).
+     * Requires admin role.
+     */
+    async adminChangePlan(userID, plan) {
+        return this.http.patch(`/admin/users/${userID}/plan`, { plan });
+    }
+    /**
+     * Permanently delete a user and all their data.
+     * Requires admin role. Irreversible.
+     */
+    async adminDeleteUser(userID) {
+        return this.http.delete(`/admin/users/${userID}`);
+    }
     // ── Health ────────────────────────────────────────────────────────────────
     /**
      * Check if AetherDB is reachable and the database is healthy.

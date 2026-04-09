@@ -15,6 +15,11 @@ import {
   Webhook,
   ImportResult,
   Metrics,
+  Plan,
+  Subscription,
+  UsageStats,
+  AdminUser,
+  AdminStats,
 } from './types'
 
 /**
@@ -407,6 +412,101 @@ export class AetherDB {
     count: number
   }> {
     return this.http.get(`/db/audit?limit=${limit}&offset=${offset}`)
+  }
+
+  // ── Billing ───────────────────────────────────────────────────────────────
+
+  /**
+   * List all available plans (free, pro, team) with their limits and pricing.
+   */
+  async listPlans(): Promise<Plan[]> {
+    return this.http.get('/billing/plans')
+  }
+
+  /**
+   * Get your current subscription details (plan, status, period dates, limits).
+   * A free subscription is auto-created on first call.
+   */
+  async getSubscription(): Promise<Subscription> {
+    return this.http.get('/billing/subscription')
+  }
+
+  /**
+   * Get live usage stats for the current billing period (queries, AI calls, storage).
+   */
+  async getUsageStats(): Promise<UsageStats> {
+    return this.http.get('/billing/usage')
+  }
+
+  /**
+   * Start a Stripe Checkout session to upgrade to pro or team.
+   * Returns a redirect URL — navigate the user there to complete payment.
+   *
+   * @example
+   * const { url } = await db.createCheckoutSession('pro')
+   * window.location.href = url
+   */
+  async createCheckoutSession(plan: 'pro' | 'team'): Promise<{ url: string }> {
+    return this.http.post('/billing/checkout', { plan })
+  }
+
+  /**
+   * Open the Stripe Customer Portal so the user can manage or cancel their subscription.
+   * Returns a redirect URL.
+   */
+  async createPortalSession(): Promise<{ url: string }> {
+    return this.http.post('/billing/portal')
+  }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  // All admin methods require an account with role="admin".
+
+  /**
+   * Get platform-wide aggregate stats (total users, queries today, subscribers).
+   * Requires admin role.
+   */
+  async adminGetStats(): Promise<AdminStats> {
+    return this.http.get('/admin/stats')
+  }
+
+  /**
+   * List all users with enriched subscription and usage data.
+   * Requires admin role.
+   */
+  async adminListUsers(limit = 50, offset = 0): Promise<{ users: AdminUser[]; total: number }> {
+    return this.http.get(`/admin/users?limit=${limit}&offset=${offset}`)
+  }
+
+  /**
+   * Suspend a user account. Suspended users cannot authenticate.
+   * Requires admin role.
+   */
+  async adminSuspendUser(userID: number): Promise<{ status: string }> {
+    return this.http.post(`/admin/users/${userID}/suspend`)
+  }
+
+  /**
+   * Lift a user suspension.
+   * Requires admin role.
+   */
+  async adminUnsuspendUser(userID: number): Promise<{ status: string }> {
+    return this.http.post(`/admin/users/${userID}/unsuspend`)
+  }
+
+  /**
+   * Override a user plan without going through Stripe (e.g., grant free trial of pro).
+   * Requires admin role.
+   */
+  async adminChangePlan(userID: number, plan: 'free' | 'pro' | 'team'): Promise<{ plan: string }> {
+    return this.http.patch(`/admin/users/${userID}/plan`, { plan })
+  }
+
+  /**
+   * Permanently delete a user and all their data.
+   * Requires admin role. Irreversible.
+   */
+  async adminDeleteUser(userID: number): Promise<void> {
+    return this.http.delete(`/admin/users/${userID}`)
   }
 
   // ── Health ────────────────────────────────────────────────────────────────

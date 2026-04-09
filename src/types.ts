@@ -135,3 +135,73 @@ export interface Metrics {
   storage_used_bytes: number
   top_paths: Array<{ path: string; count: number; avg_ms: number }>
 }
+
+export interface Plan {
+  id: number
+  name: string
+  price_monthly: number
+  query_limit: number
+  storage_limit_mb: number
+  file_limit_mb: number
+  ai_calls_limit: number
+  stripe_price_id: string | null
+}
+
+export interface Subscription {
+  id: number
+  user_id: number
+  plan_id: number
+  plan_name: string
+  price_monthly: number
+  stripe_customer_id: string | null
+  stripe_subscription_id: string | null
+  status: string
+  current_period_start: string
+  current_period_end: string
+  cancel_at_period_end: boolean
+  query_limit: number
+  storage_limit_mb: number
+  file_limit_mb: number
+  ai_calls_limit: number
+}
+
+export interface UsageStats {
+  period_start: string
+  period_end: string
+  queries_used: number
+  api_calls: number
+  ai_calls: number
+  storage_mb: number
+  file_size_mb: number
+  query_limit: number
+  storage_limit_mb: number
+  file_limit_mb: number
+  ai_calls_limit: number
+}
+
+export interface AdminUser {
+  id: number
+  email: string
+  role: string
+  is_admin: boolean
+  suspended: boolean
+  email_verified: boolean
+  created_at: string
+  plan_name: string
+  sub_status: string
+  queries_month: number
+  api_calls_month: number
+  file_size_mb: number
+  last_active: string | null
+}
+
+export interface AdminStats {
+  total_users: number
+  active_users: number
+  suspended_users: number
+  total_queries_today: number
+  total_api_calls_today: number
+  pro_subscribers: number
+  team_subscribers: number
+  total_file_size_mb: number
+}

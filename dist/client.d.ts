@@ -1,5 +1,5 @@
 import { QueryBuilder } from './query-builder';
-import { AetherDBConfig, AuthResponse, TenantInfo, TableSchema, AIQueryResult, ColumnDef, Project, APIKey, UserProfile, FileRecord, SavedQuery, Webhook, ImportResult, Metrics } from './types';
+import { AetherDBConfig, AuthResponse, TenantInfo, TableSchema, AIQueryResult, ColumnDef, Project, APIKey, UserProfile, FileRecord, SavedQuery, Webhook, ImportResult, Metrics, Plan, Subscription, UsageStats, AdminUser, AdminStats } from './types';
 /**
  * AetherDB JavaScript Client
  *
@@ -304,6 +304,76 @@ export declare class AetherDB {
         }>;
         count: number;
     }>;
+    /**
+     * List all available plans (free, pro, team) with their limits and pricing.
+     */
+    listPlans(): Promise<Plan[]>;
+    /**
+     * Get your current subscription details (plan, status, period dates, limits).
+     * A free subscription is auto-created on first call.
+     */
+    getSubscription(): Promise<Subscription>;
+    /**
+     * Get live usage stats for the current billing period (queries, AI calls, storage).
+     */
+    getUsageStats(): Promise<UsageStats>;
+    /**
+     * Start a Stripe Checkout session to upgrade to pro or team.
+     * Returns a redirect URL — navigate the user there to complete payment.
+     *
+     * @example
+     * const { url } = await db.createCheckoutSession('pro')
+     * window.location.href = url
+     */
+    createCheckoutSession(plan: 'pro' | 'team'): Promise<{
+        url: string;
+    }>;
+    /**
+     * Open the Stripe Customer Portal so the user can manage or cancel their subscription.
+     * Returns a redirect URL.
+     */
+    createPortalSession(): Promise<{
+        url: string;
+    }>;
+    /**
+     * Get platform-wide aggregate stats (total users, queries today, subscribers).
+     * Requires admin role.
+     */
+    adminGetStats(): Promise<AdminStats>;
+    /**
+     * List all users with enriched subscription and usage data.
+     * Requires admin role.
+     */
+    adminListUsers(limit?: number, offset?: number): Promise<{
+        users: AdminUser[];
+        total: number;
+    }>;
+    /**
+     * Suspend a user account. Suspended users cannot authenticate.
+     * Requires admin role.
+     */
+    adminSuspendUser(userID: number): Promise<{
+        status: string;
+    }>;
+    /**
+     * Lift a user suspension.
+     * Requires admin role.
+     */
+    adminUnsuspendUser(userID: number): Promise<{
+        status: string;
+    }>;
+    /**
+     * Override a user plan without going through Stripe (e.g., grant free trial of pro).
+     * Requires admin role.
+     */
+    adminChangePlan(userID: number, plan: 'free' | 'pro' | 'team'): Promise<{
+        plan: string;
+    }>;
+    /**
+     * Permanently delete a user and all their data.
+     * Requires admin role. Irreversible.
+     */
+    adminDeleteUser(userID: number): Promise<void>;
     /**
      * Check if AetherDB is reachable and the database is healthy.
      */

@@ -17,4 +17,9 @@ export type {
   Webhook,
   ImportResult,
   Metrics,
+  Plan,
+  Subscription,
+  UsageStats,
+  AdminUser,
+  AdminStats,
 } from './types'

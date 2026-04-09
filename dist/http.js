@@ -57,6 +57,17 @@ class HttpClient {
             throw new Error(data['error'] || `HTTP ${res.status}`);
         return data;
     }
+    async patch(path, body) {
+        const res = await fetch(`${this.baseURL}${path}`, {
+            method: 'PATCH',
+            headers: this.headers(),
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        const data = await res.json();
+        if (!res.ok)
+            throw new Error(data['error'] || `HTTP ${res.status}`);
+        return data;
+    }
     /** Upload a file using multipart/form-data. */
     async upload(path, formData) {
         const headers = {};

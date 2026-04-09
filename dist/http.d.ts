@@ -8,6 +8,7 @@ export declare class HttpClient {
     post<T>(path: string, body?: unknown): Promise<T>;
     put<T>(path: string, body?: unknown): Promise<T>;
     delete<T>(path: string): Promise<T>;
+    patch<T>(path: string, body?: unknown): Promise<T>;
     /** Upload a file using multipart/form-data. */
     upload<T>(path: string, formData: FormData): Promise<T>;
     /** Download a file and return a Blob. */
